@@ -234,64 +234,11 @@
   </header>
 
   <section class="hero">
-    <p class="eyebrow">API journey · local service business</p>
     <h1>From a prompt to a <span class="glow">booked job</span>.</h1>
-    <p class="lede">
-      Lil Timmy wants to mow lawns around Manhattan Beach. He lands on whop.com and walks six steps to a live,
-      bookable page. Here is that journey as a sequence of <b>public /api/v1</b> calls — the ones we already ship,
-      and the handful we still need to build. Anything that lives only in internal GraphQL or the first-party app
-      API counts as a build.
-    </p>
-    <div class="stats">
-      <div class="stat"><div class="n">6</div><div class="l">journey steps</div></div>
-      <div class="stat"><div class="n">~13</div><div class="l">API calls, happy path</div></div>
-      <div class="stat"><div class="n go">7</div><div class="l">already in /api/v1</div></div>
-      <div class="stat"><div class="n todo">6</div><div class="l">new /api/v1 to build</div></div>
-      <div class="stat"><div class="n todo">3</div><div class="l">new integrations</div></div>
-    </div>
-  </section>
-
-  <!-- API SHAPE -->
-  <section class="section reveal">
-    <div class="head">
-      <p class="kicker">First, what counts as “have”</p>
-      <h2>Only /api/v1 is a public API</h2>
-      <p class="sub">
-        The public surface is <code>api.whop.com/api/v1/…</code>, produced two ways. If a capability has a path here
-        we <b>have</b> it. If it lives only in internal GraphQL or the <code>/api/apps/*</code> first-party API, a
-        public journey can’t call it — that’s a <b>build</b>.
-      </p>
-    </div>
-    <div class="trio">
-      <div class="card">
-        <span class="tag">/api/v1 · lane 1</span>
-        <h3>Native controllers</h3>
-        <p>Hand-written Rails REST with dated versioning (<code>Api-Version-Date</code>).</p>
-        <p><code>/products</code> · <code>/plans</code> · <code>/accounts</code></p>
-      </div>
-      <div class="card">
-        <span class="tag">/api/v1 · lane 2</span>
-        <h3>GraphQL → REST proxy</h3>
-        <p>~57 GraphQL resources auto-translated to REST by <code>api_definition.rb</code> — same <code>/api/v1</code> surface.</p>
-        <p><code>/companies</code> · <code>/experiences</code> · <code>/checkout_configurations</code></p>
-      </div>
-      <div class="card muted-card">
-        <span class="tag">NOT PUBLIC → BUILD</span>
-        <h3>Internal GraphQL &amp; /api/apps</h3>
-        <p>Fine for whop.com, unreachable for an API journey. Each one needs an <code>/api/v1</code> equivalent.</p>
-        <p><code>createAdCampaignV4</code> · <code>/api/apps/calendar_bookings_app/*</code></p>
-      </div>
-    </div>
-    <p class="trio-note">// “have” = a path under /api/v1 (lane 1 or 2) · anything only in lane 3 is a build</p>
   </section>
 
   <!-- JOURNEY -->
   <section class="section">
-    <div class="head">
-      <p class="kicker">The journey, call by call</p>
-      <h2>Six steps, in order</h2>
-    </div>
-
     <div class="journey">
 
       <!-- STEP 1 -->
@@ -301,29 +248,31 @@
           <p class="step__phase">whop.com → what are you building?</p>
           <h3 class="step__title">Select “Service offering”</h3>
           <p class="step__what">
-            Timmy picks “Service offering” from the list. That choice is a preset — it fills in the classification and
-            which app to install. No call fires yet; these values feed the create call in step 02.
+            Tapping “Service offering” makes no API call — it’s just a screen choice. All it does is remember what
+            Timmy is building, so the create call in step 02 knows to classify it as a local service and install the
+            booking app.
           </p>
           <div class="calls">
             <div class="call">
               <div class="call__head">
-                <span class="call__op">service offering preset</span>
+                <span class="call__op">“Service offering” — a screen choice</span>
                 <span class="call__where">no API call</span>
                 <span class="call__spacer"></span>
                 <span class="pill have">have</span>
               </div>
-              <div class="code"><pre><code><span class="c-d"># a preset, not a request — these are the real enum values</span>
+              <div class="code"><pre><code><span class="c-d"># no request fires — the choice just remembers these values</span>
+<span class="c-d"># and hands them to the create call in step 02:</span>
 {
   <span class="c-k">"business_type"</span>: <span class="c-s">"services"</span>,
   <span class="c-k">"industry_group"</span>: <span class="c-s">"home_and_trade_services"</span>,   <span class="c-d"># lawn care, cleaning, trades</span>
-  <span class="c-k">"apps_to_install"</span>: [<span class="c-s">"calendar_bookings"</span>]      <span class="c-d"># actually installed in step 04</span>
+  <span class="c-k">"apps_to_install"</span>: [<span class="c-s">"calendar_bookings"</span>]      <span class="c-d"># installed in step 04</span>
 }</code></pre></div>
             </div>
           </div>
           <p class="step__note">
-            <b>What classification does:</b> <code>business_type</code> / <code>industry_group</code> drive ads
-            account-pooling, discovery search, payment MCC &amp; risk — <b>not</b> the in-product apps. The apps come
-            from installing experiences (step 04). <em>Gap (optional):</em> there’s no first-class “template” model yet.
+            <b>Does the choice matter?</b> Yes — once saved on the business, <code>business_type</code> /
+            <code>industry_group</code> drive ads account-pooling, discovery search, and payment category/risk. They do
+            <b>not</b> decide the in-product apps; those come from installing experiences in step 04.
           </p>
         </div>
       </article>
@@ -349,11 +298,11 @@
               </div>
               <div class="code"><pre><code><span class="c-d"># NEW · returns a draft to review — creates nothing</span>
 <span class="c-k">POST</span> /api/v1/business_drafts
-{ <span class="c-k">"prompt"</span>: <span class="c-s">"Lawn mowing for small yards in Manhattan Beach, $40 a mow"</span> }
+{ <span class="c-k">"prompt"</span>: <span class="c-s">"Lawn mowing for small yards in Manhattan Beach, $25 a mow"</span> }
 <span class="c-r">→</span> {
     <span class="c-k">"name"</span>: <span class="c-s">"Lil Timmy's Lawn Mowing"</span>, <span class="c-k">"description"</span>: <span class="c-s">"Small lawns, big care — local kid."</span>,
     <span class="c-k">"business_type"</span>: <span class="c-s">"services"</span>, <span class="c-k">"industry_group"</span>: <span class="c-s">"home_and_trade_services"</span>,
-    <span class="c-k">"suggested_services"</span>: [{ <span class="c-k">"title"</span>: <span class="c-s">"Lawn Mowing"</span>, <span class="c-k">"duration_minutes"</span>: <span class="c-n">45</span>, <span class="c-k">"price"</span>: <span class="c-n">40</span> }]
+    <span class="c-k">"suggested_services"</span>: [{ <span class="c-k">"title"</span>: <span class="c-s">"Lawn Mowing"</span>, <span class="c-k">"duration_minutes"</span>: <span class="c-n">45</span>, <span class="c-k">"price"</span>: <span class="c-n">25</span> }]
   }
 <span class="c-d"># reuses existing AI services: DetermineBusinessModel + GenerateName + GenerateProductMetadata</span></code></pre></div>
             </div>
@@ -414,7 +363,7 @@
   <span class="c-k">"title"</span>: <span class="c-s">"Lawn Mowing"</span>,
   <span class="c-k">"route"</span>: <span class="c-s">"lil-timmys-lawn-mowing"</span>,
   <span class="c-k">"gallery_images"</span>: [{ <span class="c-k">"id"</span>: <span class="c-s">"file_…"</span> }],
-  <span class="c-k">"plans"</span>: [{ <span class="c-k">"plan_type"</span>: <span class="c-s">"one_time"</span>, <span class="c-k">"initial_price"</span>: <span class="c-s">"40"</span>, <span class="c-k">"currency"</span>: <span class="c-s">"usd"</span> }]
+  <span class="c-k">"plans"</span>: [{ <span class="c-k">"plan_type"</span>: <span class="c-s">"one_time"</span>, <span class="c-k">"initial_price"</span>: <span class="c-s">"25"</span>, <span class="c-k">"currency"</span>: <span class="c-s">"usd"</span> }]
 }
 <span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"prod_…"</span>, <span class="c-k">"route"</span>: <span class="c-s">"lil-timmys-lawn-mowing"</span> }</code></pre></div>
             </div>
@@ -428,9 +377,15 @@
               <div class="code"><pre><code><span class="c-d"># e.g. a weekly mowing subscription, on top of the one-off above</span>
 <span class="c-k">POST</span> /api/v1/plans
 { <span class="c-k">"product_id"</span>: <span class="c-s">"prod_…"</span>, <span class="c-k">"plan_type"</span>: <span class="c-s">"recurring"</span>,
-  <span class="c-k">"billing_period"</span>: <span class="c-n">7</span>, <span class="c-k">"renewal_price"</span>: <span class="c-s">"30"</span>, <span class="c-k">"release_method"</span>: <span class="c-s">"buy_now"</span> }</code></pre></div>
+  <span class="c-k">"billing_period"</span>: <span class="c-n">7</span>, <span class="c-k">"renewal_price"</span>: <span class="c-s">"20"</span>, <span class="c-k">"release_method"</span>: <span class="c-s">"buy_now"</span> }</code></pre></div>
             </div>
           </div>
+          <p class="step__note">
+            <b>The rich page is mostly product fields.</b> “What’s Included”, “Why book Timmy”, and the trust badges map
+            to the product’s <code>description</code>, <code>product_highlights</code> &amp; <code>faqs</code> — no new
+            API. Reviews/ratings (the 5.0) are <b>read-only</b> today; collecting them isn’t public. A structured
+            <b>service area</b> (“Manhattan Beach”) has no field yet — a small gap (see Maps/Places).
+          </p>
         </div>
       </article>
 
@@ -439,10 +394,11 @@
         <div class="step__marker"><div class="step__num">04</div></div>
         <div class="step__body">
           <p class="step__phase">generate product page</p>
-          <h3 class="step__title">Add the “Book me / Book a call” CTA</h3>
+          <h3 class="step__title">Wire the “Book a Mow” + “Message Timmy” CTAs</h3>
           <p class="step__what">
-            Putting the booking app on the page is a public call today. But the actual booking mechanics —
-            defining availability and taking a booking — live only on the internal app API, so they’re builds.
+            The page has two CTAs. “Message Timmy” opens a direct line — a public call today. “Book a Mow” needs the
+            booking app: installing it is public, but defining availability and taking a booking live only on the
+            internal app API, so they’re builds.
           </p>
           <div class="calls">
             <div class="call">
@@ -468,7 +424,7 @@
               <div class="code"><pre><code><span class="c-d"># NEW · today this is internal only: /api/apps/calendar_bookings_app/availabilities</span>
 <span class="c-k">POST</span> /api/v1/availabilities?experience_id=exp_…
 { <span class="c-k">"title"</span>: <span class="c-s">"Lawn Mowing — Book me"</span>, <span class="c-k">"duration_in_minutes"</span>: <span class="c-n">45</span>,
-  <span class="c-k">"price_per_booking"</span>: <span class="c-n">40</span>, <span class="c-k">"timezone"</span>: <span class="c-s">"America/Los_Angeles"</span>,
+  <span class="c-k">"price_per_booking"</span>: <span class="c-n">25</span>, <span class="c-k">"timezone"</span>: <span class="c-s">"America/Los_Angeles"</span>,
   <span class="c-k">"timeslots"</span>: [{ <span class="c-k">"day_of_week"</span>: <span class="c-s">"saturday"</span>, <span class="c-k">"starts_time"</span>: <span class="c-s">"09:00"</span>, <span class="c-k">"ends_time"</span>: <span class="c-s">"15:00"</span> }] }</code></pre></div>
             </div>
             <div class="call is-build">
@@ -480,6 +436,17 @@
               </div>
               <div class="code"><pre><code><span class="c-d"># NEW · a neighbor books from the page (paid → payment intent, free → instant)</span>
 <span class="c-k">POST</span> /api/v1/bookings   { <span class="c-k">"availability_id"</span>: <span class="c-s">"avl_…"</span>, <span class="c-k">"starts_at"</span>: <span class="c-n">1719072000</span> }</code></pre></div>
+            </div>
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">“Message Timmy”</span>
+                <span class="call__where">POST /api/v1/support_channels (+ messages)</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># a neighbor opens a direct line to the business</span>
+<span class="c-k">POST</span> /api/v1/support_channels   { <span class="c-k">"company_id"</span>: <span class="c-s">"biz_…"</span> }   <span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"schn_…"</span> }
+<span class="c-k">POST</span> /api/v1/messages   { <span class="c-k">"channel_id"</span>: <span class="c-s">"schn_…"</span>, <span class="c-k">"content"</span>: <span class="c-s">"Hi! Can you mow this Saturday?"</span> }</code></pre></div>
             </div>
           </div>
           <p class="step__note">
@@ -581,123 +548,6 @@
 
     </div>
   </section>
-
-  <!-- BUILD -->
-  <section class="section reveal">
-    <div class="head">
-      <p class="kicker">The build list</p>
-      <h2>New /api/v1 endpoints we need</h2>
-      <p class="sub">Five for the core journey, one optional accelerator. Everything else already ships on /api/v1.</p>
-    </div>
-    <div class="builds">
-      <div class="bcard">
-        <span class="num">B1 · /api/v1</span>
-        <h3>AI business draft</h3>
-        <span class="api">POST /business_drafts</span>
-        <p>Returns name, classification &amp; suggested services without creating anything. Wraps three AI services that already exist.</p>
-        <div class="meta"><span class="chip">no new dep</span><span class="chip">size: S</span></div>
-      </div>
-      <div class="bcard">
-        <span class="num">B2 · /api/v1</span>
-        <h3>Public booking API</h3>
-        <span class="api">POST /availabilities · /bookings</span>
-        <p>Promote Calendar Bookings from the internal <code>/api/apps</code> surface to public <code>/api/v1</code> so the page can be built via the API.</p>
-        <div class="meta"><span class="chip">exposes internal</span><span class="chip">size: M</span></div>
-      </div>
-      <div class="bcard">
-        <span class="num">B3 · /api/v1</span>
-        <h3>Create ad campaign</h3>
-        <span class="api">POST /ads/ad_campaigns</span>
-        <p>The proxy already lists/pauses campaigns — only <em>create</em> is missing. Wrap the internal <code>createAdCampaignV4</code>.</p>
-        <div class="meta"><span class="chip">create only</span><span class="chip">size: S–M</span></div>
-      </div>
-      <div class="bcard">
-        <span class="num">B4 · /api/v1</span>
-        <h3>Marketing assets</h3>
-        <span class="api">POST /marketing_assets</span>
-        <p>Generate flyers, posters, business cards, social images. AI copy + imagery in-house; external render API composes print-ready output.</p>
-        <div class="meta"><span class="chip">+ render API</span><span class="chip">async job</span><span class="chip">size: M</span></div>
-      </div>
-      <div class="bcard">
-        <span class="num">B5 · /api/v1</span>
-        <h3>Social publishing</h3>
-        <span class="api">POST /social_posts</span>
-        <p>Publish or schedule to connected Instagram / TikTok / X. Reuses the shipped <code>/social_accounts</code> connection.</p>
-        <div class="meta"><span class="chip">+ publish API</span><span class="chip">reuses connect</span><span class="chip">size: M</span></div>
-      </div>
-      <div class="bcard">
-        <span class="num">B6 · optional</span>
-        <h3>Local discovery</h3>
-        <span class="api">Google Business Profile + LSA</span>
-        <p>List the business on Google &amp; run Local Services Ads — the highest-intent local channel, beyond Meta/TikTok geo.</p>
-        <div class="meta"><span class="chip opt">new network</span><span class="chip opt">size: L</span></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- INTEGRATIONS -->
-  <section class="section reveal">
-    <div class="head">
-      <p class="kicker">External services</p>
-      <h2>What to integrate vs. reuse</h2>
-    </div>
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Need</th><th>Status</th><th>Pick / source</th><th>Used for</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="svc">Static graphic render</td><td><span class="tg new">new</span></td><td>Bannerbear · Placid · Canva Connect · Adobe Express</td><td>flyers, posters, business cards (print-ready)</td></tr>
-          <tr><td class="svc">Social publishing</td><td><span class="tg new">new</span></td><td>Ayrshare, or native IG Graph / TikTok Content Posting / X</td><td>auto-post &amp; schedule</td></tr>
-          <tr><td class="svc">Local discovery</td><td><span class="tg new">new</span></td><td>Google Business Profile + Local Services Ads <em>(optional)</em></td><td>high-intent local leads</td></tr>
-          <tr><td class="svc">Maps / Places</td><td><span class="tg new">new</span></td><td>Google / Apple Places <em>(optional)</em></td><td>service area &amp; address autocomplete</td></tr>
-          <tr><td class="svc">Image generation</td><td><span class="tg reuse">reuse</span></td><td>Gemini · OpenAI · Flux (already wired in ads)</td><td>asset imagery</td></tr>
-          <tr><td class="svc">Copywriting</td><td><span class="tg reuse">reuse</span></td><td>Claude (already wired)</td><td>names, taglines, captions</td></tr>
-          <tr><td class="svc">Paid ads</td><td><span class="tg reuse">reuse</span></td><td>Meta + TikTok (live)</td><td>geo-targeted campaigns</td></tr>
-          <tr><td class="svc">Storage</td><td><span class="tg reuse">reuse</span></td><td>S3 / Files module</td><td>images &amp; generated assets</td></tr>
-          <tr><td class="svc">Booking calendar</td><td><span class="tg reuse">reuse</span></td><td>Google Calendar (synced)</td><td>appointment events</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- ORDER MANIFEST -->
-  <section class="section reveal">
-    <div class="head">
-      <p class="kicker">The ordering, condensed</p>
-      <h2>End-to-end call sequence</h2>
-      <p class="sub">The happy path Timmy triggers, in order. A neighbor’s booking sits between launch and sharing.</p>
-    </div>
-    <div class="manifest">
-      <div class="mrow build"><span class="mn">01</span><span class="mop"><b>POST /business_drafts</b> <small>· review the AI draft</small></span><span class="pill build">build</span></div>
-      <div class="mrow"><span class="mn">02</span><span class="mop"><b>POST /companies</b> <small>· create business from the draft</small></span><span class="pill have">have</span></div>
-      <div class="mrow"><span class="mn">03</span><span class="mop"><b>POST /files</b> + PUT <small>· upload the poster</small></span><span class="pill have">have</span></div>
-      <div class="mrow"><span class="mn">04</span><span class="mop"><b>POST /products</b> <small>· product + price</small></span><span class="pill have">have</span></div>
-      <div class="mrow"><span class="mn">05</span><span class="mop"><b>POST /experiences</b> + attach <small>· install booking app</small></span><span class="pill have">have</span></div>
-      <div class="mrow build"><span class="mn">06</span><span class="mop"><b>POST /availabilities</b> <small>· define the “Book me” slot</small></span><span class="pill build">build</span></div>
-      <div class="mrow"><span class="mn">07</span><span class="mop"><b>POST /checkout_configurations</b> <small>· shareable link</small></span><span class="pill have">have</span></div>
-      <div class="mrow build"><span class="mn">08</span><span class="mop"><b>POST /ads/ad_campaigns</b> <small>· geo-targeted local ads</small></span><span class="pill build">build</span></div>
-      <div class="mrow build"><span class="mn">09</span><span class="mop"><b>POST /marketing_assets</b> <small>· flyer / poster / card</small></span><span class="pill build">build</span></div>
-      <div class="mrow build"><span class="mn">10</span><span class="mop"><b>POST /social_posts</b> <small>· publish to social</small></span><span class="pill build">build</span></div>
-    </div>
-  </section>
-
-  <!-- FOOT -->
-  <footer class="foot">
-    <h2>Open questions to settle</h2>
-    <ul>
-      <li>AI draft (B1) — ship as a native <code>/api/v1</code> endpoint, or as a GraphQL field exposed through the proxy?</li>
-      <li>Booking (B2) — how much of the internal calendar app do we expose publicly: availabilities + bookings only, or the full app surface?</li>
-      <li>Should a neighbor’s booking go through a new <code>/bookings</code> endpoint or be routed through existing checkout?</li>
-      <li>Render vendor — Bannerbear / Placid (programmatic) vs Canva / Adobe Express (editable)? Social — one aggregator (Ayrshare) vs native APIs?</li>
-      <li>Local marketing — Meta/TikTok geo only, or invest in Google Business Profile + Local Services Ads (B6) now?</li>
-    </ul>
-    <p class="src">
-      // verified in repo · api_definition.rb · routes/api_v1_native.rb · config/routes/api.rb (namespace :api → :apps → :calendar_bookings_app)<br>
-      // mutations/experiences/create_experience.rb · graphql_resources/experience_resource.rb · models/concerns/business_models.rb (home_and_trade_services)<br>
-      // ads/create_ad_campaign_v4.rb (create is internal — proxy ad_campaign has list/retrieve/update/pause, no create)
-    </p>
-  </footer>
 
 </div>
 
