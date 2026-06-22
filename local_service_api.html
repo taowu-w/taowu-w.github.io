@@ -234,7 +234,7 @@
   </header>
 
   <section class="hero">
-    <h1>From a prompt to a <span class="glow">booked job</span>.</h1>
+    <h1>Local Services <span class="glow">APIs</span></h1>
   </section>
 
   <!-- JOURNEY -->
@@ -244,42 +244,6 @@
       <!-- STEP 1 -->
       <article class="step reveal">
         <div class="step__marker"><div class="step__num">01</div></div>
-        <div class="step__body">
-          <p class="step__phase">whop.com → what are you building?</p>
-          <h3 class="step__title">Select “Service offering”</h3>
-          <p class="step__what">
-            Tapping “Service offering” makes no API call — it’s just a screen choice. All it does is remember what
-            Timmy is building, so the create call in step 02 knows to classify it as a local service and install the
-            booking app.
-          </p>
-          <div class="calls">
-            <div class="call">
-              <div class="call__head">
-                <span class="call__op">“Service offering” — a screen choice</span>
-                <span class="call__where">no API call</span>
-                <span class="call__spacer"></span>
-                <span class="pill have">have</span>
-              </div>
-              <div class="code"><pre><code><span class="c-d"># no request fires — the choice just remembers these values</span>
-<span class="c-d"># and hands them to the create call in step 02:</span>
-{
-  <span class="c-k">"business_type"</span>: <span class="c-s">"services"</span>,
-  <span class="c-k">"industry_group"</span>: <span class="c-s">"home_and_trade_services"</span>,   <span class="c-d"># lawn care, cleaning, trades</span>
-  <span class="c-k">"apps_to_install"</span>: [<span class="c-s">"calendar_bookings"</span>]      <span class="c-d"># installed in step 04</span>
-}</code></pre></div>
-            </div>
-          </div>
-          <p class="step__note">
-            <b>Does the choice matter?</b> Yes — once saved on the business, <code>business_type</code> /
-            <code>industry_group</code> drive ads account-pooling, discovery search, and payment category/risk. They do
-            <b>not</b> decide the in-product apps; those come from installing experiences in step 04.
-          </p>
-        </div>
-      </article>
-
-      <!-- STEP 2 -->
-      <article class="step reveal">
-        <div class="step__marker"><div class="step__num">02</div></div>
         <div class="step__body">
           <p class="step__phase">describe your service → create</p>
           <h3 class="step__title">Describe your service</h3>
@@ -322,14 +286,15 @@
           </div>
           <p class="step__note">
             <b>Not used:</b> the existing internal <code>createCompanyFromPrompt</code> — it’s the one-shot alternative.
-            The draft + create pair replaces it. We call <b>one</b> AI endpoint, not both.
+            The draft + create pair replaces it. We call <b>one</b> AI endpoint, not both. The “Service offering” menu
+            choice that precedes this just sets <code>business_type</code> / <code>industry_group</code> defaults — no call.
           </p>
         </div>
       </article>
 
-      <!-- STEP 3 -->
+      <!-- STEP 2 -->
       <article class="step reveal">
-        <div class="step__marker"><div class="step__num">03</div></div>
+        <div class="step__marker"><div class="step__num">02</div></div>
         <div class="step__body">
           <p class="step__phase">customize offerings</p>
           <h3 class="step__title">Set name, price &amp; images</h3>
@@ -389,9 +354,9 @@
         </div>
       </article>
 
-      <!-- STEP 4 -->
+      <!-- STEP 3 -->
       <article class="step reveal">
-        <div class="step__marker"><div class="step__num">04</div></div>
+        <div class="step__marker"><div class="step__num">03</div></div>
         <div class="step__body">
           <p class="step__phase">generate product page</p>
           <h3 class="step__title">Wire the “Book a Mow” + “Message Timmy” CTAs</h3>
@@ -457,9 +422,9 @@
         </div>
       </article>
 
-      <!-- STEP 5 -->
+      <!-- STEP 4 -->
       <article class="step reveal">
-        <div class="step__marker"><div class="step__num">05</div></div>
+        <div class="step__marker"><div class="step__num">04</div></div>
         <div class="step__body">
           <p class="step__phase">share the word</p>
           <h3 class="step__title">Links &amp; local ads</h3>
@@ -475,7 +440,7 @@
                 <span class="call__spacer"></span>
                 <span class="pill have">have</span>
               </div>
-              <div class="code"><pre><code><span class="c-r">→</span> whop.com/lil-timmys-lawn-mowing      <span class="c-d"># the product route from step 03</span></code></pre></div>
+              <div class="code"><pre><code><span class="c-r">→</span> whop.com/lil-timmys-lawn-mowing      <span class="c-d"># the product route from step 02</span></code></pre></div>
             </div>
             <div class="call">
               <div class="call__head">
@@ -505,9 +470,9 @@
         </div>
       </article>
 
-      <!-- STEP 6 -->
+      <!-- STEP 5 -->
       <article class="step reveal">
-        <div class="step__marker"><div class="step__num">06</div></div>
+        <div class="step__marker"><div class="step__num">05</div></div>
         <div class="step__body">
           <p class="step__phase">share the word · the gaps</p>
           <h3 class="step__title">Flyers &amp; social posts — pure greenfield</h3>
