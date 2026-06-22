@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Service Business — API Journey</title>
+<style>
+  :root {
+    --ground: #10151c;
+    --surface: #19212b;
+    --surface-2: #1d2732;
+    --code-bg: #0c1118;
+    --text: #e9ecf2;
+    --muted: #8a96a8;
+    --faint: #5a6678;
+    --line: rgba(255,255,255,0.09);
+    --line-strong: rgba(255,255,255,0.16);
+    --accent: #7c93ff;        /* structural / internal */
+    --accent-dim: rgba(124,147,255,0.28);
+    --have: #44c998;          /* exists / reuse */
+    --have-dim: rgba(68,201,152,0.16);
+    --build: #f6a23c;         /* must build — the boldness */
+    --build-dim: rgba(246,162,60,0.16);
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, "Cascadia Code", Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body.page {
+    margin: 0;
+    background-color: var(--ground);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px, 64px 64px;
+    background-position: -1px -1px;
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* keep the grid whisper-quiet */
+  body.page::before {
+    content: "";
+    position: fixed; inset: 0;
+    background: radial-gradient(120% 80% at 50% -10%, rgba(124,147,255,0.10), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  a { color: var(--accent); }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding: 22px 0 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .brand b { color: var(--text); font-weight: 600; }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .pill {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+    padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+    border: 1px solid var(--line-strong);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 999px; background: currentColor; }
+  .pill.have { color: var(--have); border-color: var(--have-dim); background: var(--have-dim); }
+  .pill.internal { color: var(--accent); border-color: var(--accent-dim); background: rgba(124,147,255,0.10); }
+  .pill.build { color: var(--build); border-color: var(--build-dim); background: var(--build-dim); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 64px 0 40px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 20px;
+  }
+  .hero h1 {
+    font-family: var(--mono);
+    font-size: clamp(34px, 6vw, 62px);
+    line-height: 1.02; letter-spacing: -0.02em; font-weight: 650;
+    margin: 0 0 22px; max-width: 16ch;
+  }
+  .hero h1 .glow { color: var(--build); }
+  .hero p.lede { font-size: clamp(16px, 2.2vw, 20px); color: var(--muted); max-width: 60ch; margin: 0 0 40px; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 14px; }
+  .stat {
+    flex: 1 1 150px; min-width: 140px;
+    border: 1px solid var(--line); border-radius: 16px;
+    background: var(--surface); padding: 18px 18px 16px;
+  }
+  .stat .n { font-family: var(--mono); font-size: 34px; line-height: 1; font-weight: 650; }
+  .stat .n.go { color: var(--have); }
+  .stat .n.todo { color: var(--build); }
+  .stat .l { font-size: 12.5px; color: var(--muted); margin-top: 8px; letter-spacing: 0.01em; }
+
+  /* ---------- section scaffolding ---------- */
+  .section { padding: 44px 0; border-top: 1px solid var(--line); }
+  .section > .head { margin-bottom: 28px; }
+  .section .kicker {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--faint); margin: 0 0 10px;
+  }
+  .section h2 {
+    font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em;
+    font-size: clamp(22px, 3vw, 30px); margin: 0; max-width: 24ch;
+  }
+  .section .sub { color: var(--muted); margin: 12px 0 0; max-width: 64ch; }
+
+  /* ---------- api shape trio ---------- */
+  .trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .trio .card { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); padding: 20px; }
+  .trio .card.muted-card { border-style: dashed; }
+  .trio .card h3 { font-family: var(--mono); font-size: 15px; margin: 0 0 6px; }
+  .trio .card .tag { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: 0.08em; }
+  .trio .card.muted-card .tag { color: var(--faint); }
+  .trio .card p { font-size: 13.5px; color: var(--muted); margin: 12px 0 0; }
+  .trio .card code { font-family: var(--mono); font-size: 12px; color: var(--text); background: var(--code-bg); padding: 1px 6px; border-radius: 6px; }
+  .trio-note { font-size: 13.5px; color: var(--faint); margin: 18px 0 0; font-family: var(--mono); }
+
+  /* ---------- journey trace ---------- */
+  .journey { display: flex; flex-direction: column; gap: 38px; }
+  .step { display: grid; grid-template-columns: 56px 1fr; gap: 22px; position: relative; }
+  .step__marker { display: flex; justify-content: center; position: relative; }
+  .step:not(:last-child) .step__marker::before {
+    content: ""; position: absolute; left: 50%; transform: translateX(-50%);
+    top: 50px; bottom: -42px; width: 2px; background: var(--line-strong);
+  }
+  .step__num {
+    width: 50px; height: 50px; border-radius: 14px;
+    border: 1px solid var(--accent-dim); background: var(--ground);
+    display: grid; place-items: center; position: relative; z-index: 1;
+    font-family: var(--mono); font-size: 17px; font-weight: 600; color: var(--accent);
+  }
+  .step__body { min-width: 0; padding-top: 4px; }
+  .step__title { font-family: var(--mono); font-size: 19px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .step__phase { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+  .step__what { color: var(--muted); margin: 8px 0 18px; max-width: 64ch; font-size: 14.5px; }
+
+  .calls { display: flex; flex-direction: column; gap: 12px; }
+  .call { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+  .call.is-build { border-color: var(--build-dim); }
+  .call__head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 13px 16px; }
+  .call__op { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text); }
+  .call.is-build .call__op { color: var(--build); }
+  .call__where { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .call__spacer { flex: 1 1 0; min-width: 12px; }
+  .code { background: var(--code-bg); border-top: 1px solid var(--line); overflow-x: auto; }
+  .code pre { margin: 0; padding: 14px 16px; }
+  .code code { font-family: var(--mono); font-size: 12.5px; line-height: 1.65; white-space: pre; color: var(--text); display: block; }
+  .c-k { color: var(--accent); }      /* keyword / verb / field key */
+  .c-s { color: #d9b27c; }            /* string */
+  .c-n { color: #6fd0c0; }            /* number */
+  .c-d { color: var(--faint); }       /* comment / dim */
+  .c-r { color: var(--build); }       /* arrow / result */
+  .step__note {
+    margin: 14px 0 0; padding: 12px 14px; border-radius: 12px;
+    border: 1px dashed var(--line-strong); background: rgba(255,255,255,0.02);
+    font-size: 13px; color: var(--muted);
+  }
+  .step__note b { color: var(--text); font-weight: 600; }
+
+  /* ---------- build cards ---------- */
+  .builds { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .bcard { border: 1px solid var(--build-dim); border-radius: 16px; background: var(--surface); padding: 20px; position: relative; }
+  .bcard .num { font-family: var(--mono); font-size: 12px; color: var(--build); letter-spacing: 0.1em; }
+  .bcard h3 { font-family: var(--mono); font-size: 15.5px; margin: 8px 0 0; }
+  .bcard .api { font-family: var(--mono); font-size: 12px; color: var(--text); background: var(--code-bg); padding: 3px 8px; border-radius: 7px; display: inline-block; margin: 10px 0 0; }
+  .bcard p { font-size: 13.5px; color: var(--muted); margin: 12px 0 0; }
+  .bcard .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+  .chip.opt { color: var(--faint); }
+
+  /* ---------- table ---------- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); font-weight: 500; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.svc { font-family: var(--mono); color: var(--text); white-space: nowrap; }
+  .tg { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .tg.new { color: var(--build); background: var(--build-dim); }
+  .tg.reuse { color: var(--have); background: var(--have-dim); }
+
+  /* ---------- order manifest ---------- */
+  .manifest { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); overflow: hidden; }
+  .mrow { display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+  .mrow:last-child { border-bottom: none; }
+  .mrow .mn { font-family: var(--mono); color: var(--faint); font-size: 13px; }
+  .mrow .mop { font-family: var(--mono); font-size: 13.5px; }
+  .mrow .mop small { color: var(--muted); font-family: var(--mono); }
+  .mrow.build .mop b { color: var(--build); }
+
+  /* ---------- footer ---------- */
+  .foot { padding: 40px 0 72px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; }
+  .foot h2 { font-family: var(--mono); font-size: 16px; color: var(--text); margin: 0 0 14px; }
+  .foot ul { margin: 0; padding-left: 18px; }
+  .foot li { margin: 7px 0; }
+  .foot .src { margin-top: 24px; font-family: var(--mono); font-size: 11.5px; color: var(--faint); line-height: 1.8; }
+
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (max-width: 560px) {
+    .step { grid-template-columns: 40px 1fr; gap: 14px; }
+    .step__num { width: 38px; height: 38px; border-radius: 11px; font-size: 14px; }
+    .step:not(:last-child) .step__marker::before { top: 42px; }
+    .wrap { padding: 0 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body class="page">
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand"><b>WHOP</b> · ENGINEERING &nbsp;/&nbsp; SERVICE-BUSINESS LAUNCH</div>
+    <div class="legend">
+      <span class="pill have">Have · /api/v1</span>
+      <span class="pill build">Build · new /api/v1</span>
+    </div>
+  </header>
+
+  <section class="hero">
+    <p class="eyebrow">API journey · local service business</p>
+    <h1>From a prompt to a <span class="glow">booked job</span>.</h1>
+    <p class="lede">
+      Lil Timmy wants to mow lawns around Manhattan Beach. He lands on whop.com and walks six steps to a live,
+      bookable page. Here is that journey as a sequence of <b>public /api/v1</b> calls — the ones we already ship,
+      and the handful we still need to build. Anything that lives only in internal GraphQL or the first-party app
+      API counts as a build.
+    </p>
+    <div class="stats">
+      <div class="stat"><div class="n">6</div><div class="l">journey steps</div></div>
+      <div class="stat"><div class="n">~13</div><div class="l">API calls, happy path</div></div>
+      <div class="stat"><div class="n go">7</div><div class="l">already in /api/v1</div></div>
+      <div class="stat"><div class="n todo">6</div><div class="l">new /api/v1 to build</div></div>
+      <div class="stat"><div class="n todo">3</div><div class="l">new integrations</div></div>
+    </div>
+  </section>
+
+  <!-- API SHAPE -->
+  <section class="section reveal">
+    <div class="head">
+      <p class="kicker">First, what counts as “have”</p>
+      <h2>Only /api/v1 is a public API</h2>
+      <p class="sub">
+        The public surface is <code>api.whop.com/api/v1/…</code>, produced two ways. If a capability has a path here
+        we <b>have</b> it. If it lives only in internal GraphQL or the <code>/api/apps/*</code> first-party API, a
+        public journey can’t call it — that’s a <b>build</b>.
+      </p>
+    </div>
+    <div class="trio">
+      <div class="card">
+        <span class="tag">/api/v1 · lane 1</span>
+        <h3>Native controllers</h3>
+        <p>Hand-written Rails REST with dated versioning (<code>Api-Version-Date</code>).</p>
+        <p><code>/products</code> · <code>/plans</code> · <code>/accounts</code></p>
+      </div>
+      <div class="card">
+        <span class="tag">/api/v1 · lane 2</span>
+        <h3>GraphQL → REST proxy</h3>
+        <p>~57 GraphQL resources auto-translated to REST by <code>api_definition.rb</code> — same <code>/api/v1</code> surface.</p>
+        <p><code>/companies</code> · <code>/experiences</code> · <code>/checkout_configurations</code></p>
+      </div>
+      <div class="card muted-card">
+        <span class="tag">NOT PUBLIC → BUILD</span>
+        <h3>Internal GraphQL &amp; /api/apps</h3>
+        <p>Fine for whop.com, unreachable for an API journey. Each one needs an <code>/api/v1</code> equivalent.</p>
+        <p><code>createAdCampaignV4</code> · <code>/api/apps/calendar_bookings_app/*</code></p>
+      </div>
+    </div>
+    <p class="trio-note">// “have” = a path under /api/v1 (lane 1 or 2) · anything only in lane 3 is a build</p>
+  </section>
+
+  <!-- JOURNEY -->
+  <section class="section">
+    <div class="head">
+      <p class="kicker">The journey, call by call</p>
+      <h2>Six steps, in order</h2>
+    </div>
+
+    <div class="journey">
+
+      <!-- STEP 1 -->
+      <article class="step reveal">
+        <div class="step__marker"><div class="step__num">01</div></div>
+        <div class="step__body">
+          <p class="step__phase">whop.com → what are you building?</p>
+          <h3 class="step__title">Select “Service offering”</h3>
+          <p class="step__what">
+            Timmy picks “Service offering” from the list. That choice is a preset — it fills in the classification and
+            which app to install. No call fires yet; these values feed the create call in step 02.
+          </p>
+          <div class="calls">
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">service offering preset</span>
+                <span class="call__where">no API call</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># a preset, not a request — these are the real enum values</span>
+{
+  <span class="c-k">"business_type"</span>: <span class="c-s">"services"</span>,
+  <span class="c-k">"industry_group"</span>: <span class="c-s">"home_and_trade_services"</span>,   <span class="c-d"># lawn care, cleaning, trades</span>
+  <span class="c-k">"apps_to_install"</span>: [<span class="c-s">"calendar_bookings"</span>]      <span class="c-d"># actually installed in step 04</span>
+}</code></pre></div>
+            </div>
+          </div>
+          <p class="step__note">
+            <b>What classification does:</b> <code>business_type</code> / <code>industry_group</code> drive ads
+            account-pooling, discovery search, payment MCC &amp; risk — <b>not</b> the in-product apps. The apps come
+            from installing experiences (step 04). <em>Gap (optional):</em> there’s no first-class “template” model yet.
+          </p>
+        </div>
+      </article>
+
+      <!-- STEP 2 -->
+      <article class="step reveal">
+        <div class="step__marker"><div class="step__num">02</div></div>
+        <div class="step__body">
+          <p class="step__phase">describe your service → create</p>
+          <h3 class="step__title">Describe your service</h3>
+          <p class="step__what">
+            Timmy types a sentence; AI returns a draft to review — name, classification, suggested service and price.
+            Nothing is created until he confirms; then we commit with the public company-create. We skip the existing
+            one-shot mutation (it commits immediately and spins up a chatbot app a lawn-care business doesn’t need).
+          </p>
+          <div class="calls">
+            <div class="call is-build">
+              <div class="call__head">
+                <span class="call__op">coreGenerateBusinessDraft</span>
+                <span class="call__where">POST /api/v1/business_drafts · NEW</span>
+                <span class="call__spacer"></span>
+                <span class="pill build">build</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># NEW · returns a draft to review — creates nothing</span>
+<span class="c-k">POST</span> /api/v1/business_drafts
+{ <span class="c-k">"prompt"</span>: <span class="c-s">"Lawn mowing for small yards in Manhattan Beach, $40 a mow"</span> }
+<span class="c-r">→</span> {
+    <span class="c-k">"name"</span>: <span class="c-s">"Lil Timmy's Lawn Mowing"</span>, <span class="c-k">"description"</span>: <span class="c-s">"Small lawns, big care — local kid."</span>,
+    <span class="c-k">"business_type"</span>: <span class="c-s">"services"</span>, <span class="c-k">"industry_group"</span>: <span class="c-s">"home_and_trade_services"</span>,
+    <span class="c-k">"suggested_services"</span>: [{ <span class="c-k">"title"</span>: <span class="c-s">"Lawn Mowing"</span>, <span class="c-k">"duration_minutes"</span>: <span class="c-n">45</span>, <span class="c-k">"price"</span>: <span class="c-n">40</span> }]
+  }
+<span class="c-d"># reuses existing AI services: DetermineBusinessModel + GenerateName + GenerateProductMetadata</span></code></pre></div>
+            </div>
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">create business</span>
+                <span class="call__where">POST /api/v1/companies</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have · proxy</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># Timmy reviewed/edited the draft → create the business for real</span>
+<span class="c-k">POST</span> /api/v1/companies
+{ <span class="c-k">"title"</span>: <span class="c-s">"Lil Timmy's Lawn Mowing"</span>,
+  <span class="c-k">"business_type"</span>: <span class="c-s">"services"</span>, <span class="c-k">"industry_group"</span>: <span class="c-s">"home_and_trade_services"</span> }
+<span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"biz_8s2Kd…"</span> }</code></pre></div>
+            </div>
+          </div>
+          <p class="step__note">
+            <b>Not used:</b> the existing internal <code>createCompanyFromPrompt</code> — it’s the one-shot alternative.
+            The draft + create pair replaces it. We call <b>one</b> AI endpoint, not both.
+          </p>
+        </div>
+      </article>
+
+      <!-- STEP 3 -->
+      <article class="step reveal">
+        <div class="step__marker"><div class="step__num">03</div></div>
+        <div class="step__body">
+          <p class="step__phase">customize offerings</p>
+          <h3 class="step__title">Set name, price &amp; images</h3>
+          <p class="step__what">
+            Upload the cover art, then create the storefront (a “product”) with pricing inline. Every piece here
+            already ships on <code>/api/v1</code>.
+          </p>
+          <div class="calls">
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">upload image</span>
+                <span class="call__where">POST /api/v1/files + S3 PUT</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># 1 · ask for a presigned URL · 2 · PUT the bytes straight to S3</span>
+<span class="c-k">POST</span> /api/v1/files   { <span class="c-k">"filename"</span>: <span class="c-s">"lil-timmy-poster.jpg"</span>, <span class="c-k">"content_type"</span>: <span class="c-s">"image/jpeg"</span> }
+<span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"file_…"</span>, <span class="c-k">"upload_url"</span>: <span class="c-s">"https://s3…"</span> }
+<span class="c-k">PUT</span> {upload_url}   <span class="c-d">(body: file bytes)</span></code></pre></div>
+            </div>
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">create product</span>
+                <span class="call__where">POST /api/v1/products</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-k">POST</span> /api/v1/products
+{
+  <span class="c-k">"company_id"</span>: <span class="c-s">"biz_8s2Kd…"</span>,
+  <span class="c-k">"title"</span>: <span class="c-s">"Lawn Mowing"</span>,
+  <span class="c-k">"route"</span>: <span class="c-s">"lil-timmys-lawn-mowing"</span>,
+  <span class="c-k">"gallery_images"</span>: [{ <span class="c-k">"id"</span>: <span class="c-s">"file_…"</span> }],
+  <span class="c-k">"plans"</span>: [{ <span class="c-k">"plan_type"</span>: <span class="c-s">"one_time"</span>, <span class="c-k">"initial_price"</span>: <span class="c-s">"40"</span>, <span class="c-k">"currency"</span>: <span class="c-s">"usd"</span> }]
+}
+<span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"prod_…"</span>, <span class="c-k">"route"</span>: <span class="c-s">"lil-timmys-lawn-mowing"</span> }</code></pre></div>
+            </div>
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">add a tier (optional)</span>
+                <span class="call__where">POST /api/v1/plans</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># e.g. a weekly mowing subscription, on top of the one-off above</span>
+<span class="c-k">POST</span> /api/v1/plans
+{ <span class="c-k">"product_id"</span>: <span class="c-s">"prod_…"</span>, <span class="c-k">"plan_type"</span>: <span class="c-s">"recurring"</span>,
+  <span class="c-k">"billing_period"</span>: <span class="c-n">7</span>, <span class="c-k">"renewal_price"</span>: <span class="c-s">"30"</span>, <span class="c-k">"release_method"</span>: <span class="c-s">"buy_now"</span> }</code></pre></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- STEP 4 -->
+      <article class="step reveal">
+        <div class="step__marker"><div class="step__num">04</div></div>
+        <div class="step__body">
+          <p class="step__phase">generate product page</p>
+          <h3 class="step__title">Add the “Book me / Book a call” CTA</h3>
+          <p class="step__what">
+            Putting the booking app on the page is a public call today. But the actual booking mechanics —
+            defining availability and taking a booking — live only on the internal app API, so they’re builds.
+          </p>
+          <div class="calls">
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">install booking app</span>
+                <span class="call__where">POST /api/v1/experiences (+ attach)</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># 1 · resolve the Calendar Bookings app id</span>
+<span class="c-k">GET</span> /api/v1/apps?…            <span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"app_cal…"</span> }
+<span class="c-d"># 2 · create the experience powered by that app, attach it to the product</span>
+<span class="c-k">POST</span> /api/v1/experiences   { <span class="c-k">"app_id"</span>: <span class="c-s">"app_cal…"</span>, <span class="c-k">"company_id"</span>: <span class="c-s">"biz_…"</span> }   <span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"exp_…"</span> }
+<span class="c-k">POST</span> /api/v1/experiences/{exp_id}/attach   { <span class="c-k">"product_id"</span>: <span class="c-s">"prod_…"</span> }</code></pre></div>
+            </div>
+            <div class="call is-build">
+              <div class="call__head">
+                <span class="call__op">define availability</span>
+                <span class="call__where">POST /api/v1/availabilities · NEW</span>
+                <span class="call__spacer"></span>
+                <span class="pill build">build</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># NEW · today this is internal only: /api/apps/calendar_bookings_app/availabilities</span>
+<span class="c-k">POST</span> /api/v1/availabilities?experience_id=exp_…
+{ <span class="c-k">"title"</span>: <span class="c-s">"Lawn Mowing — Book me"</span>, <span class="c-k">"duration_in_minutes"</span>: <span class="c-n">45</span>,
+  <span class="c-k">"price_per_booking"</span>: <span class="c-n">40</span>, <span class="c-k">"timezone"</span>: <span class="c-s">"America/Los_Angeles"</span>,
+  <span class="c-k">"timeslots"</span>: [{ <span class="c-k">"day_of_week"</span>: <span class="c-s">"saturday"</span>, <span class="c-k">"starts_time"</span>: <span class="c-s">"09:00"</span>, <span class="c-k">"ends_time"</span>: <span class="c-s">"15:00"</span> }] }</code></pre></div>
+            </div>
+            <div class="call is-build">
+              <div class="call__head">
+                <span class="call__op">take a booking</span>
+                <span class="call__where">POST /api/v1/bookings · NEW</span>
+                <span class="call__spacer"></span>
+                <span class="pill build">build</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># NEW · a neighbor books from the page (paid → payment intent, free → instant)</span>
+<span class="c-k">POST</span> /api/v1/bookings   { <span class="c-k">"availability_id"</span>: <span class="c-s">"avl_…"</span>, <span class="c-k">"starts_at"</span>: <span class="c-n">1719072000</span> }</code></pre></div>
+            </div>
+          </div>
+          <p class="step__note">
+            <b>“Book a call” = a booking availability with a meeting link</b> — there’s no standalone 1:1 video-booking
+            app. Also, making the booking experience the page’s default CTA (<code>set_primary_experience</code>) has no
+            public endpoint yet — a small extra build.
+          </p>
+        </div>
+      </article>
+
+      <!-- STEP 5 -->
+      <article class="step reveal">
+        <div class="step__marker"><div class="step__num">05</div></div>
+        <div class="step__body">
+          <p class="step__phase">share the word</p>
+          <h3 class="step__title">Links &amp; local ads</h3>
+          <p class="step__what">
+            Sharing the link is shipped. Local ads are half-there: launching a campaign isn’t on <code>/api/v1</code>
+            (only managing one is), so campaign create is a build.
+          </p>
+          <div class="calls">
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">web link</span>
+                <span class="call__where">no API call</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-r">→</span> whop.com/lil-timmys-lawn-mowing      <span class="c-d"># the product route from step 03</span></code></pre></div>
+            </div>
+            <div class="call">
+              <div class="call__head">
+                <span class="call__op">create checkout link</span>
+                <span class="call__where">POST /api/v1/checkout_configurations</span>
+                <span class="call__spacer"></span>
+                <span class="pill have">have</span>
+              </div>
+              <div class="code"><pre><code><span class="c-k">POST</span> /api/v1/checkout_configurations   { <span class="c-k">"plan_id"</span>: <span class="c-s">"plan_…"</span>, <span class="c-k">"redirect_url"</span>: <span class="c-s">"…"</span> }
+<span class="c-r">→</span> { <span class="c-k">"purchase_url"</span>: <span class="c-s">"https://whop.com/checkout/…"</span> }</code></pre></div>
+            </div>
+            <div class="call is-build">
+              <div class="call__head">
+                <span class="call__op">launch local ad campaign</span>
+                <span class="call__where">POST /api/v1/ads/ad_campaigns · NEW</span>
+                <span class="call__spacer"></span>
+                <span class="pill build">build</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># NEW · proxy exposes manage/pause but NOT create — create is internal createAdCampaignV4 only</span>
+<span class="c-k">POST</span> /api/v1/ads/ad_campaigns
+{ <span class="c-k">"company_id"</span>: <span class="c-s">"biz_…"</span>, <span class="c-k">"title"</span>: <span class="c-s">"Manhattan Beach · Lawn Care"</span>, <span class="c-k">"platform"</span>: <span class="c-s">"meta"</span>, <span class="c-k">"budget"</span>: <span class="c-s">"20"</span>,
+  <span class="c-k">"targeting"</span>: { <span class="c-k">"geo_locations"</span>: [<span class="c-s">"Manhattan Beach, CA +10mi"</span>] } }
+<span class="c-d"># manage IS public: GET/PATCH /api/v1/ads/ad_campaigns, POST …/{id}/pause</span>
+<span class="c-d"># optional build: startAiCreativeGeneration (AI video creative, internal only)</span></code></pre></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- STEP 6 -->
+      <article class="step reveal">
+        <div class="step__marker"><div class="step__num">06</div></div>
+        <div class="step__body">
+          <p class="step__phase">share the word · the gaps</p>
+          <h3 class="step__title">Flyers &amp; social posts — pure greenfield</h3>
+          <p class="step__what">
+            Two distribution moves have no endpoint at all. Both follow the hybrid model: our AI writes the copy and
+            imagery, an external service does the part Whop shouldn’t build from scratch.
+          </p>
+          <div class="calls">
+            <div class="call is-build">
+              <div class="call__head">
+                <span class="call__op">coreGenerateMarketingAsset</span>
+                <span class="call__where">POST /api/v1/marketing_assets · NEW</span>
+                <span class="call__spacer"></span>
+                <span class="pill build">build</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># NEW · AI writes copy + imagery in-house, external render API composes print-ready files</span>
+<span class="c-k">POST</span> /api/v1/marketing_assets
+{ <span class="c-k">"type"</span>: <span class="c-s">"flyer"</span>, <span class="c-k">"product_id"</span>: <span class="c-s">"prod_…"</span>, <span class="c-k">"format"</span>: <span class="c-s">"4x6_print"</span> }
+<span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"mast_…"</span>, <span class="c-k">"status"</span>: <span class="c-s">"processing"</span> }
+<span class="c-d"># types: flyer · poster · business_card · social_image</span></code></pre></div>
+            </div>
+            <div class="call is-build">
+              <div class="call__head">
+                <span class="call__op">coreCreateSocialPost</span>
+                <span class="call__where">POST /api/v1/social_posts · NEW</span>
+                <span class="call__spacer"></span>
+                <span class="pill build">build</span>
+              </div>
+              <div class="code"><pre><code><span class="c-d"># NEW · reuses the existing /social_accounts connection</span>
+<span class="c-k">POST</span> /api/v1/social_posts
+{ <span class="c-k">"social_account_id"</span>: <span class="c-s">"sacc_…"</span>, <span class="c-k">"media"</span>: [<span class="c-s">"mast_…"</span>],
+  <span class="c-k">"caption"</span>: <span class="c-s">"Now mowing lawns in Manhattan Beach 🌱✂️"</span>, <span class="c-k">"schedule_at"</span>: null }
+<span class="c-d"># today only ACCOUNT CONNECTION exists — no publish action</span></code></pre></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- BUILD -->
+  <section class="section reveal">
+    <div class="head">
+      <p class="kicker">The build list</p>
+      <h2>New /api/v1 endpoints we need</h2>
+      <p class="sub">Five for the core journey, one optional accelerator. Everything else already ships on /api/v1.</p>
+    </div>
+    <div class="builds">
+      <div class="bcard">
+        <span class="num">B1 · /api/v1</span>
+        <h3>AI business draft</h3>
+        <span class="api">POST /business_drafts</span>
+        <p>Returns name, classification &amp; suggested services without creating anything. Wraps three AI services that already exist.</p>
+        <div class="meta"><span class="chip">no new dep</span><span class="chip">size: S</span></div>
+      </div>
+      <div class="bcard">
+        <span class="num">B2 · /api/v1</span>
+        <h3>Public booking API</h3>
+        <span class="api">POST /availabilities · /bookings</span>
+        <p>Promote Calendar Bookings from the internal <code>/api/apps</code> surface to public <code>/api/v1</code> so the page can be built via the API.</p>
+        <div class="meta"><span class="chip">exposes internal</span><span class="chip">size: M</span></div>
+      </div>
+      <div class="bcard">
+        <span class="num">B3 · /api/v1</span>
+        <h3>Create ad campaign</h3>
+        <span class="api">POST /ads/ad_campaigns</span>
+        <p>The proxy already lists/pauses campaigns — only <em>create</em> is missing. Wrap the internal <code>createAdCampaignV4</code>.</p>
+        <div class="meta"><span class="chip">create only</span><span class="chip">size: S–M</span></div>
+      </div>
+      <div class="bcard">
+        <span class="num">B4 · /api/v1</span>
+        <h3>Marketing assets</h3>
+        <span class="api">POST /marketing_assets</span>
+        <p>Generate flyers, posters, business cards, social images. AI copy + imagery in-house; external render API composes print-ready output.</p>
+        <div class="meta"><span class="chip">+ render API</span><span class="chip">async job</span><span class="chip">size: M</span></div>
+      </div>
+      <div class="bcard">
+        <span class="num">B5 · /api/v1</span>
+        <h3>Social publishing</h3>
+        <span class="api">POST /social_posts</span>
+        <p>Publish or schedule to connected Instagram / TikTok / X. Reuses the shipped <code>/social_accounts</code> connection.</p>
+        <div class="meta"><span class="chip">+ publish API</span><span class="chip">reuses connect</span><span class="chip">size: M</span></div>
+      </div>
+      <div class="bcard">
+        <span class="num">B6 · optional</span>
+        <h3>Local discovery</h3>
+        <span class="api">Google Business Profile + LSA</span>
+        <p>List the business on Google &amp; run Local Services Ads — the highest-intent local channel, beyond Meta/TikTok geo.</p>
+        <div class="meta"><span class="chip opt">new network</span><span class="chip opt">size: L</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTEGRATIONS -->
+  <section class="section reveal">
+    <div class="head">
+      <p class="kicker">External services</p>
+      <h2>What to integrate vs. reuse</h2>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Need</th><th>Status</th><th>Pick / source</th><th>Used for</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="svc">Static graphic render</td><td><span class="tg new">new</span></td><td>Bannerbear · Placid · Canva Connect · Adobe Express</td><td>flyers, posters, business cards (print-ready)</td></tr>
+          <tr><td class="svc">Social publishing</td><td><span class="tg new">new</span></td><td>Ayrshare, or native IG Graph / TikTok Content Posting / X</td><td>auto-post &amp; schedule</td></tr>
+          <tr><td class="svc">Local discovery</td><td><span class="tg new">new</span></td><td>Google Business Profile + Local Services Ads <em>(optional)</em></td><td>high-intent local leads</td></tr>
+          <tr><td class="svc">Maps / Places</td><td><span class="tg new">new</span></td><td>Google / Apple Places <em>(optional)</em></td><td>service area &amp; address autocomplete</td></tr>
+          <tr><td class="svc">Image generation</td><td><span class="tg reuse">reuse</span></td><td>Gemini · OpenAI · Flux (already wired in ads)</td><td>asset imagery</td></tr>
+          <tr><td class="svc">Copywriting</td><td><span class="tg reuse">reuse</span></td><td>Claude (already wired)</td><td>names, taglines, captions</td></tr>
+          <tr><td class="svc">Paid ads</td><td><span class="tg reuse">reuse</span></td><td>Meta + TikTok (live)</td><td>geo-targeted campaigns</td></tr>
+          <tr><td class="svc">Storage</td><td><span class="tg reuse">reuse</span></td><td>S3 / Files module</td><td>images &amp; generated assets</td></tr>
+          <tr><td class="svc">Booking calendar</td><td><span class="tg reuse">reuse</span></td><td>Google Calendar (synced)</td><td>appointment events</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ORDER MANIFEST -->
+  <section class="section reveal">
+    <div class="head">
+      <p class="kicker">The ordering, condensed</p>
+      <h2>End-to-end call sequence</h2>
+      <p class="sub">The happy path Timmy triggers, in order. A neighbor’s booking sits between launch and sharing.</p>
+    </div>
+    <div class="manifest">
+      <div class="mrow build"><span class="mn">01</span><span class="mop"><b>POST /business_drafts</b> <small>· review the AI draft</small></span><span class="pill build">build</span></div>
+      <div class="mrow"><span class="mn">02</span><span class="mop"><b>POST /companies</b> <small>· create business from the draft</small></span><span class="pill have">have</span></div>
+      <div class="mrow"><span class="mn">03</span><span class="mop"><b>POST /files</b> + PUT <small>· upload the poster</small></span><span class="pill have">have</span></div>
+      <div class="mrow"><span class="mn">04</span><span class="mop"><b>POST /products</b> <small>· product + price</small></span><span class="pill have">have</span></div>
+      <div class="mrow"><span class="mn">05</span><span class="mop"><b>POST /experiences</b> + attach <small>· install booking app</small></span><span class="pill have">have</span></div>
+      <div class="mrow build"><span class="mn">06</span><span class="mop"><b>POST /availabilities</b> <small>· define the “Book me” slot</small></span><span class="pill build">build</span></div>
+      <div class="mrow"><span class="mn">07</span><span class="mop"><b>POST /checkout_configurations</b> <small>· shareable link</small></span><span class="pill have">have</span></div>
+      <div class="mrow build"><span class="mn">08</span><span class="mop"><b>POST /ads/ad_campaigns</b> <small>· geo-targeted local ads</small></span><span class="pill build">build</span></div>
+      <div class="mrow build"><span class="mn">09</span><span class="mop"><b>POST /marketing_assets</b> <small>· flyer / poster / card</small></span><span class="pill build">build</span></div>
+      <div class="mrow build"><span class="mn">10</span><span class="mop"><b>POST /social_posts</b> <small>· publish to social</small></span><span class="pill build">build</span></div>
+    </div>
+  </section>
+
+  <!-- FOOT -->
+  <footer class="foot">
+    <h2>Open questions to settle</h2>
+    <ul>
+      <li>AI draft (B1) — ship as a native <code>/api/v1</code> endpoint, or as a GraphQL field exposed through the proxy?</li>
+      <li>Booking (B2) — how much of the internal calendar app do we expose publicly: availabilities + bookings only, or the full app surface?</li>
+      <li>Should a neighbor’s booking go through a new <code>/bookings</code> endpoint or be routed through existing checkout?</li>
+      <li>Render vendor — Bannerbear / Placid (programmatic) vs Canva / Adobe Express (editable)? Social — one aggregator (Ayrshare) vs native APIs?</li>
+      <li>Local marketing — Meta/TikTok geo only, or invest in Google Business Profile + Local Services Ads (B6) now?</li>
+    </ul>
+    <p class="src">
+      // verified in repo · api_definition.rb · routes/api_v1_native.rb · config/routes/api.rb (namespace :api → :apps → :calendar_bookings_app)<br>
+      // mutations/experiences/create_experience.rb · graphql_resources/experience_resource.rb · models/concerns/business_models.rb (home_and_trade_services)<br>
+      // ads/create_ad_campaign_v4.rb (create is internal — proxy ad_campaign has list/retrieve/update/pause, no create)
+    </p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
+  })();
+</script>
+</body>
+</html>
