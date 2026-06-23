@@ -359,11 +359,10 @@
         <div class="step__marker"><div class="step__num">03</div></div>
         <div class="step__body">
           <p class="step__phase">generate product page</p>
-          <h3 class="step__title">Wire the “Book a Mow” + “Message Timmy” CTAs</h3>
+          <h3 class="step__title">Wire the “Book a Mow” CTA</h3>
           <p class="step__what">
-            The page has two CTAs. “Message Timmy” opens a direct line — a public call today. “Book a Mow” needs the
-            booking app: installing it is public, but defining availability and taking a booking live only on the
-            internal app API, so they’re builds.
+            The “Book a Mow” CTA needs the booking app: installing it is public, but defining availability and taking
+            a booking live only on the internal app API, so they’re builds.
           </p>
           <div class="calls">
             <div class="call">
@@ -401,19 +400,7 @@
               </div>
               <div class="code"><pre><code><span class="c-d"># NEW · a neighbor books from the page (paid → payment intent, free → instant)</span>
 <span class="c-k">POST</span> /api/v1/bookings   { <span class="c-k">"availability_id"</span>: <span class="c-s">"avl_…"</span>, <span class="c-k">"starts_at"</span>: <span class="c-n">1719072000</span> }</code></pre></div>
-            </div>
-            <div class="call">
-              <div class="call__head">
-                <span class="call__op">“Message Timmy”</span>
-                <span class="call__where">POST /api/v1/support_channels (+ messages)</span>
-                <span class="call__spacer"></span>
-                <span class="pill have">have</span>
-              </div>
-              <div class="code"><pre><code><span class="c-d"># a neighbor opens a direct line to the business</span>
-<span class="c-k">POST</span> /api/v1/support_channels   { <span class="c-k">"company_id"</span>: <span class="c-s">"biz_…"</span> }   <span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"schn_…"</span> }
-<span class="c-k">POST</span> /api/v1/messages   { <span class="c-k">"channel_id"</span>: <span class="c-s">"schn_…"</span>, <span class="c-k">"content"</span>: <span class="c-s">"Hi! Can you mow this Saturday?"</span> }</code></pre></div>
-            </div>
-          </div>
+            </div>          </div>
           <p class="step__note">
             <b>“Book a call” = a booking availability with a meeting link</b> — there’s no standalone 1:1 video-booking
             app. Also, making the booking experience the page’s default CTA (<code>set_primary_experience</code>) has no
