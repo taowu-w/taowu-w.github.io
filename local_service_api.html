@@ -145,9 +145,9 @@
   .step__body { min-width: 0; padding-top: 4px; }
   .step__title { font-family: var(--mono); font-size: 19px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
   .step__phase { font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
-  .step__what { color: var(--muted); margin: 8px 0 18px; max-width: 64ch; font-size: 14.5px; }
+  .step__what { color: var(--muted); margin: 8px 0 0; max-width: 64ch; font-size: 14.5px; }
 
-  .calls { display: flex; flex-direction: column; gap: 12px; }
+  .calls { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
   .call { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
   .call.is-build { border-color: var(--build-dim); }
   .call__head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 13px 16px; }
@@ -284,11 +284,6 @@
 <span class="c-r">→</span> { <span class="c-k">"id"</span>: <span class="c-s">"biz_8s2Kd…"</span> }</code></pre></div>
             </div>
           </div>
-          <p class="step__note">
-            <b>Not used:</b> the existing internal <code>createCompanyFromPrompt</code> — it’s the one-shot alternative.
-            The draft + create pair replaces it. We call <b>one</b> AI endpoint, not both. The “Service offering” menu
-            choice that precedes this just sets <code>business_type</code> / <code>industry_group</code> defaults — no call.
-          </p>
         </div>
       </article>
 
@@ -298,10 +293,6 @@
         <div class="step__body">
           <p class="step__phase">customize offerings</p>
           <h3 class="step__title">Set name, price &amp; images</h3>
-          <p class="step__what">
-            Upload the cover art, then create the storefront (a “product”) with pricing inline. Every piece here
-            already ships on <code>/api/v1</code>.
-          </p>
           <div class="calls">
             <div class="call">
               <div class="call__head">
@@ -345,12 +336,6 @@
   <span class="c-k">"billing_period"</span>: <span class="c-n">7</span>, <span class="c-k">"renewal_price"</span>: <span class="c-s">"20"</span>, <span class="c-k">"release_method"</span>: <span class="c-s">"buy_now"</span> }</code></pre></div>
             </div>
           </div>
-          <p class="step__note">
-            <b>The rich page is mostly product fields.</b> “What’s Included”, “Why book Timmy”, and the trust badges map
-            to the product’s <code>description</code>, <code>product_highlights</code> &amp; <code>faqs</code> — no new
-            API. Reviews/ratings (the 5.0) are <b>read-only</b> today; collecting them isn’t public. A structured
-            <b>service area</b> (“Manhattan Beach”) has no field yet — a small gap (see Maps/Places).
-          </p>
         </div>
       </article>
 
@@ -415,20 +400,7 @@
         <div class="step__body">
           <p class="step__phase">share the word</p>
           <h3 class="step__title">Links &amp; local ads</h3>
-          <p class="step__what">
-            Sharing the link is shipped. Local ads are half-there: launching a campaign isn’t on <code>/api/v1</code>
-            (only managing one is), so campaign create is a build.
-          </p>
           <div class="calls">
-            <div class="call">
-              <div class="call__head">
-                <span class="call__op">web link</span>
-                <span class="call__where">no API call</span>
-                <span class="call__spacer"></span>
-                <span class="pill have">have</span>
-              </div>
-              <div class="code"><pre><code><span class="c-r">→</span> whop.com/lil-timmys-lawn-mowing      <span class="c-d"># the product route from step 02</span></code></pre></div>
-            </div>
             <div class="call">
               <div class="call__head">
                 <span class="call__op">create checkout link</span>
@@ -464,8 +436,7 @@
           <p class="step__phase">share the word · the gaps</p>
           <h3 class="step__title">Flyers &amp; social posts — pure greenfield</h3>
           <p class="step__what">
-            Two distribution moves have no endpoint at all. Both follow the hybrid model: our AI writes the copy and
-            imagery, an external service does the part Whop shouldn’t build from scratch.
+            Neither exists yet — our AI writes the copy and imagery, an external service renders the files.
           </p>
           <div class="calls">
             <div class="call is-build">
